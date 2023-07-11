@@ -41,3 +41,5 @@
 
 # Packaged module.
 *.tgz
+
+.tool-versions
