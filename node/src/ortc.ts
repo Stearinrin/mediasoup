@@ -1413,6 +1413,8 @@ function matchCodecs(
 	const aMimeType = aCodec.mimeType.toLowerCase();
 	const bMimeType = bCodec.mimeType.toLowerCase();
 
+	// console.log("matchCodecs: aMimeType: " + aMimeType + " bMimeType: " + bMimeType);
+
 	if (aMimeType !== bMimeType)
 	{
 		return false;
@@ -1504,6 +1506,8 @@ function matchCodecs(
 			{
 				const aProfileId = aCodec.parameters['profile-id'] || 0;
 				const bProfileId = bCodec.parameters['profile-id'] || 0;
+
+				// console.log("matchCodecs: aProfileId: " + aProfileId + " bProfileId: " + bProfileId);
 
 				if (aProfileId !== bProfileId)
 				{
