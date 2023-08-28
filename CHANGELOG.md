@@ -1,6 +1,26 @@
 # Changelog
 
 
+### 3.12.10
+
+* Node: Rename `WebRtcTransport.webRtcServerClosed()` to `listenServerClosed()` ([PR #1141](https://github.com/versatica/mediasoup/pull/1141) by @piranna).
+
+
+### 3.12.9
+
+* Fix RTCP SDES ([PR #1139](https://github.com/versatica/mediasoup/pull/1139)).
+
+
+### 3.12.8
+
+* Export `workerBin` absolute path ([PR #1123](https://github.com/versatica/mediasoup/pull/1123)).
+
+
+### 3.12.7
+
+* `SimulcastConsumer`: Fix lack of "layerschange" event when all streams in the producer die ([PR #1122](https://github.com/versatica/mediasoup/pull/1122)).
+
+
 ### 3.12.6
 
 * `Worker`: Add `Transport::Destroying()` protected method ([PR #1114](https://github.com/versatica/mediasoup/pull/1114)).
