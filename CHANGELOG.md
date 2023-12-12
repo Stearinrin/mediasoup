@@ -1,6 +1,11 @@
 # Changelog
 
 
+### 3.13.10
+
+* `tasks.py`: Always include `--no-user` in `pip install` commands to avoid the "can not combine --user and --target" error in Windows ([PR #1257](https://github.com/versatica/mediasoup/pull/1257)).
+
+
 ### 3.13.9
 
 * Update worker liburing dependency to 2.4-2 ([PR #1254](https://github.com/versatica/mediasoup/pull/1254)).
