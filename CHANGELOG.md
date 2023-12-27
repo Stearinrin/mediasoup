@@ -1,6 +1,27 @@
 # Changelog
 
 
+### NEXT
+
+* worker: Do not use references for async callbacks ([PR #1274](https://github.com/versatica/mediasoup/pull/1274)).
+* liburing: Enable zero copy ([PR #1273](https://github.com/versatica/mediasoup/pull/1273)).
+
+
+### 3.13.12
+
+* worker: Disable `RtcLogger` usage if not enabled ([PR #1264](https://github.com/versatica/mediasoup/pull/1264)).
+* npm installation: Don't require Python if valid worker prebuilt binary is fetched ([PR #1265](https://github.com/versatica/mediasoup/pull/1265)).
+* Update h264-profile-level-id NPM dependency to 1.1.0.
+
+
+### 3.13.11
+
+* liburing: Avoid extra memcpy on RTP ([PR #1258](https://github.com/versatica/mediasoup/pull/1258)).
+* libsrtp: Use our own fork with performance gain ([PR #1260](https://github.com/versatica/mediasoup/pull/1260)).
+* `DataConsumer`: Add `addSubchannel()` and `removeSubchannel()` methods ([PR #1263](https://github.com/versatica/mediasoup/pull/1263)).
+* Fix Rust `DataConsumer` ([PR #1262](https://github.com/versatica/mediasoup/pull/1262)).
+
+
 ### 3.13.10
 
 * `tasks.py`: Always include `--no-user` in `pip install` commands to avoid the "can not combine --user and --target" error in Windows ([PR #1257](https://github.com/versatica/mediasoup/pull/1257)).
