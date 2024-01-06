@@ -8,8 +8,18 @@ import { WebRtcTransportData } from './WebRtcTransport';
 import { PlainTransportData } from './PlainTransport';
 import { PipeTransportData } from './PipeTransport';
 import { DirectTransportData } from './DirectTransport';
-import { Producer, ProducerOptions, producerTypeFromFbs, producerTypeToFbs } from './Producer';
-import { Consumer, ConsumerLayers, ConsumerOptions, ConsumerType } from './Consumer';
+import {
+	Producer,
+	ProducerOptions,
+	producerTypeFromFbs,
+	producerTypeToFbs
+} from './Producer';
+import {
+	Consumer,
+	ConsumerOptions,
+	ConsumerType,
+	ConsumerLayers
+} from './Consumer';
 import {
 	DataProducer,
 	DataProducerOptions,
@@ -74,6 +84,11 @@ export type TransportListenInfo =
 	port?: number;
 
 	/**
+	 * Socket flags.
+	 */
+	flags?: TransportSocketFlags;
+
+	/**
 	 * Send buffer size (bytes).
 	 */
 	sendBufferSize?: number;
@@ -106,6 +121,22 @@ export type TransportListenIp =
  * Transport protocol.
  */
 export type TransportProtocol = 'udp' | 'tcp';
+
+/**
+ * UDP/TCP socket flags.
+ */
+export type TransportSocketFlags =
+{
+	/**
+	 * Disable dual-stack support so only IPv6 is used (only if ip is IPv6).
+	 */
+	ipv6Only?: boolean;
+	/**
+	 * Make different transports bind to the same ip and port (only for UDP).
+	 * Useful for multicast scenarios with plain transport. Use with caution.
+	 */
+	udpReusePort?: boolean;
+};
 
 export type TransportTuple =
 {
@@ -714,17 +745,20 @@ export class Transport
 			throw new TypeError('if given, appData must be an object');
 		}
 
+		// Clone given RTP parameters to not modify input data.
+		const clonedRtpParameters = utils.clone<RtpParameters>(rtpParameters);
+
 		// This may throw.
-		ortc.validateRtpParameters(rtpParameters);
+		ortc.validateRtpParameters(clonedRtpParameters);
 
 		// If missing or empty encodings, add one.
 		if (
-			!rtpParameters.encodings ||
-			!Array.isArray(rtpParameters.encodings) ||
-			rtpParameters.encodings.length === 0
+			!clonedRtpParameters.encodings ||
+			!Array.isArray(clonedRtpParameters.encodings) ||
+			clonedRtpParameters.encodings.length === 0
 		)
 		{
-			rtpParameters.encodings = [ {} ];
+			clonedRtpParameters.encodings = [ {} ];
 		}
 
 		// Don't do this in PipeTransports since there we must keep CNAME value in
@@ -733,9 +767,13 @@ export class Transport
 		{
 			// If CNAME is given and we don't have yet a CNAME for Producers in this
 			// Transport, take it.
-			if (!this.#cnameForProducers && rtpParameters.rtcp && rtpParameters.rtcp.cname)
+			if (
+				!this.#cnameForProducers &&
+				clonedRtpParameters.rtcp &&
+				clonedRtpParameters.rtcp.cname
+			)
 			{
-				this.#cnameForProducers = rtpParameters.rtcp.cname;
+				this.#cnameForProducers = clonedRtpParameters.rtcp.cname;
 			}
 			// Otherwise if we don't have yet a CNAME for Producers and the RTP
 			// parameters do not include CNAME, create a random one.
@@ -745,26 +783,26 @@ export class Transport
 			}
 
 			// Override Producer's CNAME.
-			rtpParameters.rtcp = rtpParameters.rtcp || {};
-			rtpParameters.rtcp.cname = this.#cnameForProducers;
+			clonedRtpParameters.rtcp = clonedRtpParameters.rtcp ?? {};
+			clonedRtpParameters.rtcp.cname = this.#cnameForProducers;
 		}
 
 		const routerRtpCapabilities = this.#getRouterRtpCapabilities();
 
 		// This may throw.
 		const rtpMapping = ortc.getProducerRtpParametersMapping(
-			rtpParameters, routerRtpCapabilities);
+			clonedRtpParameters, routerRtpCapabilities);
 
 		// This may throw.
 		const consumableRtpParameters = ortc.getConsumableRtpParameters(
-			kind, rtpParameters, routerRtpCapabilities, rtpMapping);
+			kind, clonedRtpParameters, routerRtpCapabilities, rtpMapping);
 
 		const producerId = id || utils.generateUUIDv4();
 		const requestOffset = createProduceRequest({
-			builder : this.channel.bufferBuilder,
+			builder       : this.channel.bufferBuilder,
 			producerId,
 			kind,
-			rtpParameters,
+			rtpParameters : clonedRtpParameters,
 			rtpMapping,
 			keyFrameRequestDelay,
 			paused
@@ -787,8 +825,8 @@ export class Transport
 		const data =
 		{
 			kind,
-			rtpParameters,
-			type : producerTypeFromFbs(status.type),
+			rtpParameters : clonedRtpParameters,
+			type          : producerTypeFromFbs(status.type),
 			consumableRtpParameters
 		};
 
@@ -800,7 +838,7 @@ export class Transport
 					producerId
 				},
 				data,
-				channel        : this.channel,
+				channel : this.channel,
 				appData,
 				paused
 			});
@@ -854,8 +892,11 @@ export class Transport
 			throw new TypeError('if given, mid must be non empty string');
 		}
 
+		// Clone given RTP capabilities to not modify input data.
+		const clonedRtpCapabilities = utils.clone<RtpCapabilities>(rtpCapabilities);
+
 		// This may throw.
-		ortc.validateRtpCapabilities(rtpCapabilities!);
+		ortc.validateRtpCapabilities(clonedRtpCapabilities);
 
 		const producer = this.getProducerById(producerId);
 
@@ -874,7 +915,7 @@ export class Transport
 		const rtpParameters = ortc.getConsumerRtpParameters(
 			{
 				consumableRtpParameters : producer.consumableRtpParameters,
-				remoteRtpCapabilities   : rtpCapabilities!,
+				remoteRtpCapabilities   : clonedRtpCapabilities,
 				pipe,
 				enableRtx
 			}
@@ -996,13 +1037,17 @@ export class Transport
 
 		let type: DataProducerType;
 
+		// Clone given SCTP stream parameters to not modify input data.
+		let clonedSctpStreamParameters
+			= utils.clone<SctpStreamParameters | undefined>(sctpStreamParameters);
+
 		// If this is not a DirectTransport, sctpStreamParameters are required.
 		if (this.constructor.name !== 'DirectTransport')
 		{
 			type = 'sctp';
 
 			// This may throw.
-			ortc.validateSctpStreamParameters(sctpStreamParameters!);
+			ortc.validateSctpStreamParameters(clonedSctpStreamParameters!);
 		}
 		// If this is a DirectTransport, sctpStreamParameters must not be given.
 		else
@@ -1013,15 +1058,17 @@ export class Transport
 			{
 				logger.warn(
 					'produceData() | sctpStreamParameters are ignored when producing data on a DirectTransport');
+
+				clonedSctpStreamParameters = undefined;
 			}
 		}
 
 		const dataProducerId = id || utils.generateUUIDv4();
 		const requestOffset = createProduceDataRequest({
-			builder : this.channel.bufferBuilder,
+			builder              : this.channel.bufferBuilder,
 			dataProducerId,
 			type,
-			sctpStreamParameters,
+			sctpStreamParameters : clonedSctpStreamParameters,
 			label,
 			protocol,
 			paused
@@ -1117,8 +1164,10 @@ export class Transport
 		if (this.constructor.name !== 'DirectTransport')
 		{
 			type = 'sctp';
-			sctpStreamParameters =
-				(utils.clone(dataProducer.sctpStreamParameters) ?? {}) as SctpStreamParameters;
+
+			sctpStreamParameters = utils.clone<SctpStreamParameters | undefined>(
+				dataProducer.sctpStreamParameters
+			) ?? {} as SctpStreamParameters;
 
 			// Override if given.
 			if (ordered !== undefined)
@@ -1247,7 +1296,7 @@ export class Transport
 		{
 			throw new TypeError('types must be an array');
 		}
-		if (types.find((type) => typeof type !== 'string'))
+		else if (types.find((type) => typeof type !== 'string'))
 		{
 			throw new TypeError('every type must be a string');
 		}
@@ -1841,7 +1890,5 @@ function parseSctpListenerDump(binary: FbsTransport.SctpListener): SctpListenerD
 	// Retrieve streamIdTable.
 	const streamIdTable = utils.parseUint32StringVector(binary, 'streamIdTable');
 
-	return {
-		streamIdTable
-	};
+	return { streamIdTable };
 }

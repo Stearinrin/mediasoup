@@ -1,7 +1,7 @@
-import process from 'node:process';
-import os from 'node:os';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as process from 'node:process';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { execSync } from 'node:child_process';
 import fetch from 'node-fetch';
 import tar from 'tar';
@@ -16,12 +16,13 @@ const WORKER_RELEASE_DIR = 'worker/out/Release';
 const WORKER_RELEASE_BIN = IS_WINDOWS ? 'mediasoup-worker.exe' : 'mediasoup-worker';
 const WORKER_RELEASE_BIN_PATH = `${WORKER_RELEASE_DIR}/${WORKER_RELEASE_BIN}`;
 const WORKER_PREBUILD_DIR = 'worker/prebuild';
-const WORKER_PREBUILD_TAR = `mediasoup-worker-${PKG.version}-${os.platform()}-${os.arch()}.tgz`;
+const WORKER_PREBUILD_TAR = getWorkerPrebuildTarName();
 const WORKER_PREBUILD_TAR_PATH = `${WORKER_PREBUILD_DIR}/${WORKER_PREBUILD_TAR}`;
 const GH_OWNER = 'versatica';
 const GH_REPO = 'mediasoup';
 
-const task = process.argv.slice(2).join(' ');
+const task = process.argv[2];
+const args = process.argv.slice(3).join(' ');
 
 // PYTHONPATH env must be updated now so all invoke calls below will find the
 // pip invoke module.
@@ -45,6 +46,8 @@ run();
 
 async function run()
 {
+	logInfo(args ? `[args:"${args}"]` : '');
+
 	switch (task)
 	{
 		// As per NPM documentation (https://docs.npmjs.com/cli/v9/using-npm/scripts)
@@ -125,7 +128,7 @@ async function run()
 		case 'typescript:watch':
 		{
 			deleteNodeLib();
-			executeCmd('tsc --project node --watch');
+			executeCmd(`tsc --project node --watch ${args}`);
 
 			break;
 		}
@@ -199,7 +202,7 @@ async function run()
 		case 'coverage:node':
 		{
 			buildTypescript({ force: false });
-			executeCmd('jest --coverage');
+			executeCmd(`jest --coverage ${args}`);
 			executeCmd('open-cli coverage/lcov-report/index.html');
 
 			break;
@@ -298,6 +301,22 @@ function getPython()
 	}
 
 	return python;
+}
+
+function getWorkerPrebuildTarName()
+{
+	let name = `mediasoup-worker-${PKG.version}-${os.platform()}-${os.arch()}`;
+
+	// In Linux we want to know about kernel version since kernel >= 6 supports
+	// io-uring.
+	if (os.platform() === 'linux')
+	{
+		const kernelMajorVersion = Number(os.release().split('.')[0]);
+
+		name += `-kernel${kernelMajorVersion}`;
+	}
+
+	return `${name}.tgz`;
 }
 
 function installInvoke()
@@ -422,14 +441,7 @@ function testNode()
 {
 	logInfo('testNode()');
 
-	if (!process.env.TEST_FILE)
-	{
-		executeCmd('jest');
-	}
-	else
-	{
-		executeCmd(`jest --testPathPattern "${process.env.TEST_FILE}"`);
-	}
+	executeCmd(`jest ${args}`);
 }
 
 function testWorker()

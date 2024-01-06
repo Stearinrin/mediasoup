@@ -7,7 +7,11 @@ import { InvalidStateError } from './errors';
 import { Body as RequestBody, Method, Request } from './fbs/request';
 import { Response } from './fbs/response';
 import { Message, Body as MessageBody } from './fbs/message';
-import { Notification, Body as NotificationBody, Event } from './fbs/notification';
+import {
+	Notification,
+	Body as NotificationBody,
+	Event
+} from './fbs/notification';
 import { Log } from './fbs/log';
 
 const IS_LITTLE_ENDIAN = os.endianness() === 'LE';
@@ -83,7 +87,8 @@ export class Channel extends EnhancedEventEmitter
 			{
 				this.#recvBuffer = Buffer.concat(
 					[ this.#recvBuffer, buffer ],
-					this.#recvBuffer.length + buffer.length);
+					this.#recvBuffer.length + buffer.length
+				);
 			}
 
 			if (this.#recvBuffer.length > PAYLOAD_MAX_LEN)
@@ -110,7 +115,8 @@ export class Channel extends EnhancedEventEmitter
 
 				const dataView = new DataView(
 					this.#recvBuffer.buffer,
-					this.#recvBuffer.byteOffset + msgStart);
+					this.#recvBuffer.byteOffset + msgStart
+				);
 				const msgLen = dataView.getUint32(0, IS_LITTLE_ENDIAN);
 
 				if (readLen < 4 + msgLen)
@@ -119,7 +125,8 @@ export class Channel extends EnhancedEventEmitter
 					break;
 				}
 
-				const payload = this.#recvBuffer.subarray(msgStart + 4, msgStart + 4 + msgLen);
+				const payload =
+					this.#recvBuffer.subarray(msgStart + 4, msgStart + 4 + msgLen);
 
 				msgStart += 4 + msgLen;
 
@@ -167,8 +174,7 @@ export class Channel extends EnhancedEventEmitter
 						{
 							// eslint-disable-next-line no-console
 							console.warn(
-								`worker[pid:${pid}] unexpected data: %s`,
-								payload.toString('utf8', 1)
+								`worker[pid:${pid}] unexpected data: ${payload.toString('utf8', 1)}`
 							);
 						}
 					}
@@ -176,8 +182,8 @@ export class Channel extends EnhancedEventEmitter
 				catch (error)
 				{
 					logger.error(
-						'received invalid message from the worker process: %s',
-						String(error));
+						`received invalid message from the worker process: ${error}`
+					);
 				}
 			}
 
@@ -192,7 +198,7 @@ export class Channel extends EnhancedEventEmitter
 		));
 
 		this.#consumerSocket.on('error', (error) => (
-			logger.error('Consumer Channel error: %s', String(error))
+			logger.error(`Consumer Channel error: ${error}`)
 		));
 
 		this.#producerSocket.on('end', () => (
@@ -200,7 +206,7 @@ export class Channel extends EnhancedEventEmitter
 		));
 
 		this.#producerSocket.on('error', (error) => (
-			logger.error('Producer Channel error: %s', String(error))
+			logger.error(`Producer Channel error: ${error}`)
 		));
 	}
 
@@ -262,11 +268,13 @@ export class Channel extends EnhancedEventEmitter
 		handlerId?: string
 	): void
 	{
-		logger.debug('notify() [event:%s]', Event[event]);
+		logger.debug(`notify() [event:${Event[event]}]`);
 
 		if (this.#closed)
 		{
-			throw new InvalidStateError('Channel closed');
+			throw new InvalidStateError(
+				`Channel closed, cannot send notification [event:${Event[event]}]`
+			);
 		}
 
 		const handlerIdOffset = this.#bufferBuilder.createString(handlerId);
@@ -302,7 +310,7 @@ export class Channel extends EnhancedEventEmitter
 
 		if (buffer.byteLength > MESSAGE_MAX_LEN)
 		{
-			throw new Error('Channel request too big');
+			throw new Error(`notification too big [event:${Event[event]}]`);
 		}
 
 		try
@@ -312,7 +320,7 @@ export class Channel extends EnhancedEventEmitter
 		}
 		catch (error)
 		{
-			logger.warn('notify() | sending notification failed: %s', String(error));
+			logger.warn(`notify() | sending notification failed: ${error}`);
 
 			return;
 		}
@@ -324,9 +332,13 @@ export class Channel extends EnhancedEventEmitter
 		bodyOffset?: number,
 		handlerId?: string): Promise<Response>
 	{
+		logger.debug(`request() [method:${Method[method]}]`);
+
 		if (this.#closed)
 		{
-			throw new InvalidStateError('Channel closed');
+			throw new InvalidStateError(
+				`Channel closed, cannot send request [method:${Method[method]}]`
+			);
 		}
 
 		this.#nextId < 4294967295 ? ++this.#nextId : (this.#nextId = 1);
@@ -366,7 +378,7 @@ export class Channel extends EnhancedEventEmitter
 
 		if (buffer.byteLength > MESSAGE_MAX_LEN)
 		{
-			throw new Error('Channel request too big');
+			throw new Error(`request too big [method:${Method[method]}]`);
 		}
 
 		// This may throw if closed or remote side ended.
@@ -398,7 +410,9 @@ export class Channel extends EnhancedEventEmitter
 				},
 				close : () =>
 				{
-					pReject(new InvalidStateError('Channel closed'));
+					pReject(new InvalidStateError(
+						`Channel closed, pending request aborted [method:${Method[method]}, id:${id}]`
+					));
 				}
 			};
 
@@ -414,7 +428,8 @@ export class Channel extends EnhancedEventEmitter
 		if (!sent)
 		{
 			logger.error(
-				'received response does not match any sent request [id:%s]', response.id);
+				`received response does not match any sent request [id:${response.id}]`
+			);
 
 			return;
 		}
@@ -422,15 +437,16 @@ export class Channel extends EnhancedEventEmitter
 		if (response.accepted())
 		{
 			logger.debug(
-				'request succeeded [method:%s, id:%s]', sent.method, sent.id);
+				`request succeeded [method:${sent.method}, id:${sent.id}]`
+			);
 
 			sent.resolve(response);
 		}
 		else if (response.error())
 		{
 			logger.warn(
-				'request failed [method:%s, id:%s]: %s',
-				sent.method, sent.id, response.reason());
+				`request failed [method:${sent.method}, id:${sent.id}]: ${response.reason()}`
+			);
 
 			switch (response.error()!)
 			{
@@ -450,8 +466,8 @@ export class Channel extends EnhancedEventEmitter
 		else
 		{
 			logger.error(
-				'received response is not accepted nor rejected [method:%s, id:%s]',
-				sent.method, sent.id);
+				`received response is not accepted nor rejected [method:${sent.method}, id:${sent.id}]`
+			);
 		}
 	}
 
