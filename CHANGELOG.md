@@ -1,10 +1,25 @@
 # Changelog
 
 
-### NEXT
+### 3.13.15
+
+* Add worker prebuild binary for Linux kernel 6 ([PR #1300](https://github.com/versatica/mediasoup/pull/1300)).
+
+
+### 3.13.14
+
+* Avoid modification of user input data ([PR #1285](https://github.com/versatica/mediasoup/pull/1285)).
+* `ListenInfo`: Add transport socket flags ([PR #1291](https://github.com/versatica/mediasoup/pull/1291)).
+* `ListenInfo`: Ignore given socket flags if not suitable for given IP family or transport ([PR #1294](https://github.com/versatica/mediasoup/pull/1294)).
+* Meson: Remove `-Db_pie=true -Db_staticpic=true` args ([PR #1293](https://github.com/versatica/mediasoup/pull/1293)).
+* Add RTCP Sender Report trace event ([PR #1267](https://github.com/versatica/mediasoup/pull/1267) by @GithubUser8080).
+
+
+### 3.13.13
 
 * worker: Do not use references for async callbacks ([PR #1274](https://github.com/versatica/mediasoup/pull/1274)).
 * liburing: Enable zero copy ([PR #1273](https://github.com/versatica/mediasoup/pull/1273)).
+* Fix build on musl based systems (such as Alpine Linux) ([PR #1279](https://github.com/versatica/mediasoup/pull/1279)).
 
 
 ### 3.13.12

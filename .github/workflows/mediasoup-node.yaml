@@ -1,6 +1,6 @@
 name: mediasoup-node
 
-on: [push, pull_request]
+on: [pull_request, workflow_dispatch]
 
 concurrency:
   # Cancel a currently running workflow from the same PR, branch or tag when a
@@ -28,6 +28,7 @@ jobs:
 
     env:
       MEDIASOUP_SKIP_WORKER_PREBUILT_DOWNLOAD: 'true'
+      MEDIASOUP_LOCAL_DEV: 'true'
 
     steps:
       - name: Checkout
@@ -56,4 +57,4 @@ jobs:
         run: npm run lint:node
 
       - name: npm run test:node
-        run: npm run test:node
+        run: npm run test:node -- --silent false
