@@ -7,13 +7,10 @@
 #include "MediaSoupErrors.hpp"
 #include "Utils.hpp"
 #include "RTC/Codecs/Tools.hpp"
-#include "RTC/RTCP/FeedbackPs.hpp"
-#include "RTC/RTCP/FeedbackRtp.hpp"
+#include "RTC/RTCP/Feedback.hpp"
 #include "RTC/RTCP/XrReceiverReferenceTime.hpp"
 #include <absl/container/inlined_vector.h>
-#include <cstring>  // std::memcpy()
-#include <iterator> // std::ostream_iterator
-#include <sstream>  // std::ostringstream
+#include <cstring> // std::memcpy()
 
 namespace RTC
 {
@@ -32,12 +29,9 @@ namespace RTC
 	  const std::string& id,
 	  RTC::Producer::Listener* listener,
 	  const FBS::Transport::ProduceRequest* data)
-	  : id(id), shared(shared), listener(listener)
+	  : id(id), shared(shared), listener(listener), kind(RTC::Media::Kind(data->kind()))
 	{
 		MS_TRACE();
-
-		// This may throw.
-		this->kind = RTC::Media::Kind(data->kind());
 
 		// This may throw.
 		this->rtpParameters = RTC::RtpParameters(data->rtpParameters());

@@ -50,7 +50,7 @@ Worker::Worker(::Channel::ChannelSocket* channel) : channel(channel)
 
 	// Tell the Node process that we are running.
 	this->shared->channelNotifier->Emit(
-	  std::to_string(Logger::pid), FBS::Notification::Event::WORKER_RUNNING);
+	  std::to_string(Logger::Pid), FBS::Notification::Event::WORKER_RUNNING);
 
 	MS_DEBUG_DEV("starting libuv loop");
 	DepLibUV::RunLoop();
@@ -143,7 +143,7 @@ flatbuffers::Offset<FBS::Worker::DumpResponse> Worker::FillBuffer(
 
 	return FBS::Worker::CreateDumpResponseDirect(
 	  builder,
-	  Logger::pid,
+	  Logger::Pid,
 	  &webRtcServerIds,
 	  &routerIds,
 	  channelMessageHandlers
@@ -312,7 +312,7 @@ inline void Worker::HandleRequest(Channel::ChannelRequest* request)
 			{
 				const auto* const body = request->data->body_as<FBS::Worker::CreateWebRtcServerRequest>();
 
-				std::string webRtcServerId = body->webRtcServerId()->str();
+				const std::string webRtcServerId = body->webRtcServerId()->str();
 
 				CheckNoWebRtcServer(webRtcServerId);
 
