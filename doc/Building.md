@@ -34,6 +34,14 @@ Validates mediasoup JavaScript files using [ESLint](https://eslint.org).
 
 Validates mediasoup worker C++ files using [clang-format](https://clang.llvm.org/docs/ClangFormat.html). It invokes `invoke lint` below.
 
+### `npm run format`
+
+Runs both `npm run format:node` and `npm run format:worker`.
+
+### `npm run format:node`
+
+Format TypeScript and JavaScript code using [Prettier](https://prettier.io).
+
 ### `npm run format:worker`
 
 Rewrites mediasoup worker C++ files using [clang-format](https://clang.llvm.org/docs/ClangFormat.html). It invokes `invoke format` below.
@@ -90,7 +98,7 @@ Tasks are defined in `worker/tasks.py`. For development purposes, developers or 
 
 See all the tasks by running `invoke --list` within the `worker` folder.
 
-*NOTE:* For some of these tasks to work, npm dependencies of `worker/scripts/package.json` must be installed:
+_NOTE:_ For some of these tasks to work, npm dependencies of `worker/scripts/package.json` must be installed:
 
 ```bash
 npm ci --prefix worker/scripts
@@ -145,7 +153,7 @@ Check the meaning of useful macros in the `worker/include/Logger.hpp` header fil
 
 Binary is built at `worker/out/MEDIASOUP_BUILDTYPE/build`.
 
-In order to instruct the mediasoup Node.js module to use the "Debug"` `mediasoup-worker` binary, an environment variable must be set before running the Node.js application:
+In order to instruct the mediasoup Node.js module to use the "Debug" mediasoup-worker` binary, an environment variable must be set before running the Node.js application:
 
 ```bash
 MEDIASOUP_BUILDTYPE=Debug node myapp.js
@@ -189,11 +197,22 @@ Runs [clang-tidy](http://clang.llvm.org/extra/clang-tidy) and performs C++ code 
 
 **Requirements:**
 
-* `invoke clean` and `invoke mediasoup-worker` must have been called first.
-* [PyYAML](https://pyyaml.org) is required.
-  - In OSX install it with `brew install libyaml` and `sudo easy_install-X.Y pyyaml`.
+- `invoke clean` and `invoke mediasoup-worker` must have been called first.
+- [clang-tools-extra](https://clang.llvm.org/extra) is required.
+  - In OSX install it with `brew install llvm`.
+  - In linux the package name is `clang-tools-extra`.
 
-"MEDIASOUP_TIDY_CHECKS" environment variable with a comma separated list of checks overrides the checks defined in `.clang-tidy` file.
+**Environment variables:**
+
+- "MEDIASOUP_TIDY_CHECKS": Comma separated list of checks. Overrides the checks defined in `worker/.clang-tidy` file.
+- "MEDIASOUP_TIDY_FILES": Space separated source files to process, including their path. All `.cpp` files will be processes by default.
+- "MEDIASOUP_CLANG_TIDY_DIR": Path to directory containing clang tools (`run-clang-tidy`, `clang-tidy`, `clang-apply-replacements`).
+
+**Usage example in macOS:**
+
+```bash
+MEDIASOUP_CLANG_TIDY_DIR=/usr/local/opt/llvm/bin invoke tidy
+```
 
 ### `invoke fuzzer`
 
@@ -201,9 +220,9 @@ Builds the `mediasoup-worker-fuzzer` binary (which uses [libFuzzer](http://llvm.
 
 **Requirements:**
 
-* Linux with fuzzer capable clang++.
-* `CC` environment variable must point to "clang".
-* `CXX` environment variable must point to "clang++".
+- Linux with fuzzer capable clang++.
+- "CC" environment variable must point to `clang`.
+- "CXX" environment variable must point to `clang++`.
 
 Read the [Fuzzer](Fuzzer.md) documentation for detailed information.
 
